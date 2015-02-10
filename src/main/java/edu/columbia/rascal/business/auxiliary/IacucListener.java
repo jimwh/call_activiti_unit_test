@@ -114,7 +114,7 @@ public class IacucListener implements TaskListener, ExecutionListener {
         ExecutionEntity superExecEntity = thisEntity.getSuperExecution();
 
         if (superExecEntity == null) {
-            // get the business key the main process was launched with.
+            // get the business key of the main process
             log.info("main process: {}, {}", thisEntity.getBusinessKey(),
                     thisEntity.getProcessDefinitionId());
             // used by designatedReviews output
@@ -128,14 +128,10 @@ public class IacucListener implements TaskListener, ExecutionListener {
             log.info("sub-process: {}, {}, {}", key, thisEntity.getProcessDefinitionId(), hasAppendix);
 
             thisEntity.setVariable("BusinessKey", key);
+
             // for get task by business key
             thisEntity.setBusinessKey(key);
 
-            // populate this var in main process
-            // if( thisEntity.getVariable(AllAppendicesApproved) != null ) {
-            //    superExecEntity.setVariable(AllAppendicesApproved, thisEntity.getVariable(AllAppendicesApproved));
-            //}
-            //
         }
     }
 }
