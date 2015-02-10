@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<definitions
+        xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+        xmlns:activiti="http://activiti.org/bpmn"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        targetNamespace="http://activiti.org/bpmn20">
+
+    <process id="appendix-process" name="Appendix Process">
+
+        <extensionElements>
+            <activiti:executionListener event="start"
+                                        delegateExpression="${iacucListener}"/>
+        </extensionElements>
+
+        <!-- task listener is required for all appendix tasks because var allAppendicesApproved will be updated in complete event -->
+        <transaction id="appendixATransaction">
+            <startEvent id="appendixAStart"/>
+            <endEvent id="appendixAEnd">
+                <cancelEventDefinition/>
+            </endEvent>
+            <parallelGateway id="appendixAFork"/>
+            <exclusiveGateway id="appendixAJoin"/>
+
+            <!--  task listener for this task  -->
+            <userTask id="soPreApproveA" name="Safety Office Pre-approve Appendix-A">
+                <extensionElements>
+                    <activiti:taskListener event="create"
+                                           delegateExpression="${iacucListener}"/>
+                    <activiti:taskListener event="complete"
+                                           delegateExpression="${iacucListener}"/>
+                </extensionElements>
+            </userTask>
+
+            <userTask id="soHoldA" name="Safety Office Hold Appendix-A">
+                <extensionElements>
+                    <activiti:taskListener event="create"
+                                           delegateExpression="${iacucListener}"/>
+                    <activiti:taskListener event="complete"
+                                           delegateExpression="${iacucListener}"/>
+                </extensionElements>
+            </userTask>
+
+            <sequenceFlow sourceRef="appendixAStart" targetRef="appendixAFork"/>
+
+            <sequenceFlow sourceRef="appendixAFork" targetRef="soPreApproveA"/>
+
+            <sequenceFlow sourceRef="appendixAFork" targetRef="soHoldA"/>
+
+            <sequenceFlow sourceRef="soPreApproveA" targetRef="appendixAJoin"/>
+            <sequenceFlow sourceRef="soHoldA" targetRef="appendixAJoin"/>
+
+            <sequenceFlow sourceRef="appendixAJoin" targetRef="appendixAEnd"/>
+        </transaction>
+        <boundaryEvent id="appendixACancelled" attachedToRef="appendixATransaction">
+            <cancelEventDefinition/>
+        </boundaryEvent>
+
+        <transaction id="appendixBTransaction">
+            <startEvent id="appendixBStart"/>
+            <endEvent id="appendixBEnd">
+                <cancelEventDefinition/>
+            </endEvent>
+            <parallelGateway id="appendixBFork"/>
+            <exclusiveGateway id="appendixBJoin"/>
+            <userTask id="soPreApproveB" name="Safety Office Pre-approve Appendix-B">
+                <extensionElements>
+                    <activiti:taskListener event="create"
+                                           delegateExpression="${iacucListener}"/>
+                    <activiti:taskListener event="complete"
+                                           delegateExpression="${iacucListener}"/>
+                </extensionElements>
+            </userTask>
+            <userTask id="soHoldB" name="Safety Office Hold Appendix-B">
+                <extensionElements>
+                    <activiti:taskListener event="create"
+                                           delegateExpression="${iacucListener}"/>
+                    <activiti:taskListener event="complete"
+                                           delegateExpression="${iacucListener}"/>
+                </extensionElements>
+            </userTask>
+
+            <sequenceFlow sourceRef="appendixBStart" targetRef="appendixBFork"/>
+            <sequenceFlow sourceRef="appendixBFork" targetRef="soPreApproveB"/>
+            <sequenceFlow sourceRef="appendixBFork" targetRef="soHoldB"/>
+
+            <sequenceFlow sourceRef="soPreApproveB" targetRef="appendixBJoin"/>
+            <sequenceFlow sourceRef="soHoldB" targetRef="appendixBJoin"/>
+
+            <sequenceFlow sourceRef="appendixBJoin" targetRef="appendixBEnd"/>
+        </transaction>
+        <boundaryEvent id="appendixBCancelled" attachedToRef="appendixBTransaction">
+            <cancelEventDefinition/>
+        </boundaryEvent>
+
+        <!-- start -->
+        <startEvent id="callStart"/>
+
+        <sequenceFlow sourceRef="callStart" targetRef="hasAppendix"/>
+
+        <exclusiveGateway id="hasAppendix"/>
+
+        <sequenceFlow sourceRef="hasAppendix" targetRef="callEnd">
+            <conditionExpression xsi:type="tFormalExpression">${hasAppendix == false}</conditionExpression>
+        </sequenceFlow>
+
+        <inclusiveGateway id="appendixTransactionFork"/>
+        <sequenceFlow sourceRef="hasAppendix" targetRef="appendixTransactionFork">
+            <conditionExpression xsi:type="tFormalExpression">${hasAppendix == true}</conditionExpression>
+        </sequenceFlow>
+
+        <!-- fork all appendices -->
+        <sequenceFlow sourceRef="appendixTransactionFork" targetRef="appendixATransaction">
+            <conditionExpression xsi:type="tFormalExpression">${appendixA==true}</conditionExpression>
+        </sequenceFlow>
+
+        <sequenceFlow sourceRef="appendixTransactionFork" targetRef="appendixBTransaction">
+            <conditionExpression xsi:type="tFormalExpression">${appendixB==true}</conditionExpression>
+        </sequenceFlow>
+
+        <!-- all appendices reach to the join point -->
+        <inclusiveGateway id="appendixTransactionJoin"/>
+        <sequenceFlow sourceRef="appendixATransaction" targetRef="appendixTransactionJoin"/>
+        <sequenceFlow sourceRef="appendixBTransaction" targetRef="appendixTransactionJoin"/>
+
+        <endEvent id="callEnd"/>
+        <sequenceFlow sourceRef="appendixTransactionJoin" targetRef="callEnd"/>
+
+    </process>
+
+</definitions>
