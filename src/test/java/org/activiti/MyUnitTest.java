@@ -46,8 +46,8 @@ public class MyUnitTest {
         boolean allAppendicesApproved = false;
         processMap.put("hasAppendix", hasAppendix);// used in main process
         processMap.put("allAppendicesApproved", allAppendicesApproved);// used in main process
-        processMap.put("appendixA", true);   // used in sub-process, has A
-        processMap.put("appendixB", true);  // used in sub-process, no B
+        //processMap.put("appendixA", true);   // used in sub-process, has A
+        //processMap.put("appendixB", true);  // used in sub-process, no B
 
         // Appendix A...I
         startProtocolProcess(bizKey, processMap);
@@ -69,14 +69,22 @@ public class MyUnitTest {
         u2Approval(bizKey, "Dave");
         //u2Hold(bizKey, "Dave");
 
-        printCurrentApprovalStatus(bizKey);
 
         finalApproval(bizKey, "admin");
-        //returnToPI(bizKey, "admin");
+        // returnToPI(bizKey, "admin");
+
+        printCurrentApprovalStatus(bizKey);
+
+        //undoApproval(bizKey, "admin");
+        /*
+        try{
+            Thread.sleep(5000);
+        }catch(InterruptedException e){}
 
         printCurrentApprovalStatus(bizKey);
 
         printHistory(bizKey);
+        */
     }
 
 
@@ -108,8 +116,19 @@ public class MyUnitTest {
         //
         completeTaskByTaskService(iacucTaskForm);
         // completed return-2-pi, there is no task and no instance
-        Assert.assertEquals(0, taskCount(bizKey));
-        Assert.assertNull(getProtocolProcessInstance(bizKey));
+        // Assert.assertEquals(0, taskCount(bizKey));
+        // Assert.assertNull(getProtocolProcessInstance(bizKey));
+    }
+
+    void undoReturnToPI(String bizKey, String user) {
+        IacucTaskForm iacucTaskForm = new IacucTaskForm();
+        iacucTaskForm.setBizKey(bizKey);
+        iacucTaskForm.setAuthor(user);
+        iacucTaskForm.setComment("undo return to PI back man1...");
+        iacucTaskForm.setTaskName(IacucStatus.UndoReturnToPI.statusName());
+        iacucTaskForm.setTaskDefKey(IacucStatus.UndoReturnToPI.taskDefKey());
+        //
+        completeTaskByTaskService(iacucTaskForm);
     }
 
     void distributeToDS(String bizKey, String user, List<String> reviewerList) {
@@ -222,6 +241,17 @@ public class MyUnitTest {
         corr.setText("Your protocol has been approved.");
         corr.apply();
         iacucTaskForm.setIacucCorrespondence(corr);
+        completeTaskByTaskService(iacucTaskForm);
+    }
+
+    void undoApproval(String bizKey, String user) {
+        IacucTaskForm iacucTaskForm = new IacucTaskForm();
+        iacucTaskForm.setBizKey(bizKey);
+        iacucTaskForm.setAuthor(user);
+        iacucTaskForm.setComment("undo approval");
+        iacucTaskForm.setTaskName(IacucStatus.UndoApproval.statusName());
+        iacucTaskForm.setTaskDefKey(IacucStatus.UndoApproval.taskDefKey());
+        //
         completeTaskByTaskService(iacucTaskForm);
     }
 

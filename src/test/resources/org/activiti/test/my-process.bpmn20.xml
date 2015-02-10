@@ -195,15 +195,22 @@
                           name="Appendix Approval Process"
                           calledElement="appendix-process">
                 <extensionElements>
+                    <!--
                     <activiti:in source="appendixA" target="appendixA"/>
                     <activiti:in source="appendixB" target="appendixB"/>
+                    -->
                     <activiti:in source="hasAppendix" target="hasAppendix"/>
                     <activiti:out source="allAppendicesApproved" target="allAppendicesApproved"/>
                 </extensionElements>
             </callActivity>
 
 
-            <userTask id="finalApproval" name="Approve"/>
+            <userTask id="finalApproval" name="Approve">
+                <extensionElements>
+                    <activiti:taskListener event="complete"
+                                           delegateExpression="${iacucListener}"/>
+                </extensionElements>
+            </userTask>
 
             <parallelGateway id="tpFork"/>
             <exclusiveGateway id="tpJoin"/>
@@ -242,15 +249,43 @@
                 </conditionExpression>
             </sequenceFlow>
 
-            <manualTask id="myManualTask" name="it is a stop point for return-2-pi"/>
+            <manualTask id="man2" name="it is a stop point for return-2-pi"/>
             <!-- can't directly go return-2-pi, otherwise 2 return2Pi tasks will be created -->
-            <sequenceFlow sourceRef="foo" targetRef="myManualTask">
+            <sequenceFlow sourceRef="foo" targetRef="man2">
                 <conditionExpression xsi:type="tFormalExpression">${allRvs==false or allAppendicesApproved==false}
                 </conditionExpression>
             </sequenceFlow>
 
-            <sequenceFlow sourceRef="finalApproval" targetRef="tpJoin"/>
+            <!--            <sequenceFlow sourceRef="finalApproval" targetRef="tpJoin"/> -->
+
+            <sequenceFlow sourceRef="finalApproval" targetRef="undoApproval"/>
+            <userTask id="undoApproval" name="Undo Approval">
+                <extensionElements>
+                    <activiti:taskListener event="complete"
+                                           delegateExpression="${iacucListener}"/>
+                </extensionElements>
+            </userTask>
+            <boundaryEvent id="undoApprovalTimerBoundary"
+                           name="Undo Approval timeout"
+                           cancelActivity="true"
+                           attachedToRef="undoApproval">
+                <timerEventDefinition>
+                    <timeDuration>PT60S</timeDuration>
+                </timerEventDefinition>
+            </boundaryEvent>
+
+            <sequenceFlow sourceRef="undoApproval" targetRef="finalApproval">
+                <conditionExpression xsi:type="tFormalExpression">${undoApproval==true}
+                </conditionExpression>
+            </sequenceFlow>
+
+            <sequenceFlow sourceRef="undoApproval" targetRef="tpJoin">
+                <conditionExpression xsi:type="tFormalExpression">${undoApproval==false}
+            </conditionExpression>
+            </sequenceFlow>
+
             <sequenceFlow sourceRef="returnToPI" targetRef="tpJoin"/>
+
             <sequenceFlow sourceRef="tpJoin" targetRef="tpEnd"/>
 
         </transaction>
@@ -282,9 +317,24 @@
             <conditionExpression xsi:type="tFormalExpression"><![CDATA[${START_GATEWAY == 10}]]></conditionExpression>
         </sequenceFlow>
 
+
+        <manualTask id="man1"/>
+        <sequenceFlow sourceRef="submit" targetRef="man1"/>
+        <sequenceFlow sourceRef="man1" targetRef="TP"/>
+
+        <sequenceFlow sourceRef="TP" targetRef="thEnd">
+            <conditionExpression xsi:type="tFormalExpression">${undoReturnToPI==false}
+            </conditionExpression>
+        </sequenceFlow>
+        <sequenceFlow sourceRef="TP" targetRef="man1">
+            <conditionExpression xsi:type="tFormalExpression">${undoReturnToPI==true}
+            </conditionExpression>
+        </sequenceFlow>
+
+        <!--
         <sequenceFlow sourceRef="submit" targetRef="TP"/>
         <sequenceFlow sourceRef="TP" targetRef="thEnd"/>
-
+        -->
 
         <sequenceFlow sourceRef="addCorrespondence" targetRef="thEnd"/>
         <sequenceFlow sourceRef="terminateProtocol" targetRef="thEnd"/>

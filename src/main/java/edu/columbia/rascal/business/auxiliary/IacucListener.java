@@ -8,6 +8,9 @@ import org.activiti.engine.impl.persistence.entity.ExecutionEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class IacucListener implements TaskListener, ExecutionListener {
 
     private static final Logger log = LoggerFactory.getLogger(IacucListener.class);
@@ -40,6 +43,19 @@ public class IacucListener implements TaskListener, ExecutionListener {
             log.info("create: {}", sb.toString());
         } else if ("complete".equals(eventName)) {
             log.info("complete: {}", sb.toString());
+
+
+            if( IacucStatus.RETURNTOPI.isDefKey(taskDefKey) ) {
+                taskExecution.setVariable("undoApproval", false);
+            }
+            if( IacucStatus.UndoApproval.isDefKey(taskDefKey) ) {
+                taskExecution.setVariable("undoApproval", true);
+            }
+            if( IacucStatus.FINALAPPROVAL.isDefKey(taskDefKey) ) {
+                taskExecution.setVariable("undoApproval", false);
+            }
+
+
 
             // for designated reviewers
             if (IacucStatus.Rv1Hold.isDefKey(taskDefKey)) {
@@ -110,13 +126,14 @@ public class IacucListener implements TaskListener, ExecutionListener {
     @Override
     public void notify(DelegateExecution delegateExecution) throws Exception {
 
+
         ExecutionEntity thisEntity = (ExecutionEntity) delegateExecution;
         ExecutionEntity superExecEntity = thisEntity.getSuperExecution();
+        String eventName = delegateExecution.getEventName();
 
         if (superExecEntity == null) {
             // get the business key of the main process
-            log.info("main process: {}, {}", thisEntity.getBusinessKey(),
-                    thisEntity.getProcessDefinitionId());
+            log.info("main process: eventName={}, bizKey={}, procDefId={}", eventName, thisEntity.getBusinessKey(), thisEntity.getProcessDefinitionId());
             // used by designatedReviews output
             thisEntity.setVariable(AllRvs, true);
 
@@ -125,12 +142,19 @@ public class IacucListener implements TaskListener, ExecutionListener {
             String key = (String) superExecEntity.getVariable("BusinessKey");
             boolean hasAppendix = (Boolean) superExecEntity.getVariable("hasAppendix");
 
-            log.info("sub-process: {}, {}, {}", key, thisEntity.getProcessDefinitionId(), hasAppendix);
+            log.info("sub-process: eventName={}, bizKey={}, procDefId={}, hasAppendix={}",
+                    eventName, key, thisEntity.getProcessDefinitionId(), hasAppendix);
 
             thisEntity.setVariable("BusinessKey", key);
 
             // for get task by business key
             thisEntity.setBusinessKey(key);
+
+            //
+            Map<String, Object> processMap = new HashMap<String, Object>();
+            processMap.put("appendixA", true);   // used in sub-process, has A
+            processMap.put("appendixB", true);   // used in sub-process, has B
+            thisEntity.setVariables(processMap);
 
         }
     }
